@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net - default deny all collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email != null && request.auth.token.email in ['clearfile360@gmail.com', 'raj.oneplus6@gmail.com', 'clearconcept360@gmail.com', 'admin@nilam360.ai', 'superadmin@nilam360.ai']) ||
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.admin == true
+      );
+    }
+
+    // 2. Users Collection
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isSuperAdmin();
+    }
+
+    // 3. Property Cases collection rules
+    match /property_cases/{caseId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isSuperAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isSuperAdmin());
+
+      allow create: if isSignedIn() && 
+        isValidId(caseId) &&
+        request.resource.data.userId == request.auth.uid;
+
+      allow update: if isSignedIn() && (
+        (resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid) ||
+        isSuperAdmin()
+      );
+
+      allow delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isSuperAdmin()
+      );
+    }
+
+    // 4. Admin Audit Logs collection rules
+    match /admin_audit_logs/{logId} {
+      allow read, write: if isSuperAdmin();
+      allow create: if isSignedIn() && isValidId(logId);
+    }
+  }
+}
+

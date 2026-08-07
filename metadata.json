@@ -1,0 +1,8 @@
+{
+  "name": "Citizen360 AI Platform",
+  "description": "AI-powered legal, property, and civic resolution platform supporting Property360, Legal360, and AIEOS workspaces.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

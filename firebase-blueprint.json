@@ -1,0 +1,151 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "User Account & Subscription Profile",
+      "description": "User account details, subscription plan tier, usage limits, and account status controlled by Super Admin.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "User unique identifier."
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User full name or display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Avatar picture URL."
+        },
+        "plan": {
+          "type": "string",
+          "enum": ["free", "pro", "enterprise"],
+          "description": "Current active subscription plan."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended", "vip"],
+          "description": "Account status flag."
+        },
+        "customCaseLimit": {
+          "type": "number",
+          "description": "Optional custom override for maximum allowed case analyses."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "admin", "superadmin"],
+          "description": "User permissions role."
+        },
+        "adminNotes": {
+          "type": "string",
+          "description": "Notes added by super admin regarding this user account."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account registration timestamp."
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last sign in timestamp."
+        }
+      },
+      "required": ["uid", "email", "plan", "status"]
+    },
+    "PropertyCase": {
+      "title": "Property Dispute Resolution Case",
+      "description": "Represents a full multi-stage legal and administrative evaluation for a property dispute in Tamil Nadu.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique identifier of the property case."
+        },
+        "userId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID of the Google-authenticated user who owns this record."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the analysis was generated."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the analysis was last updated."
+        },
+        "rawDescription": {
+          "type": "string",
+          "maxLength": 10000,
+          "description": "Raw input text entered by the user detailing their property grievance."
+        },
+        "stage0": {
+          "type": "object",
+          "description": "Intake questionnaire structured attributes."
+        },
+        "stage1": {
+          "type": "object",
+          "description": "Category determination parameters."
+        },
+        "stage2": {
+          "type": "object",
+          "description": "Root cause extraction outcome."
+        },
+        "stage8": {
+          "type": "object",
+          "description": "Remedy and administrative track parameters."
+        },
+        "stage9": {
+          "type": "object",
+          "description": "Complex risk computation factors and composite score."
+        },
+        "clientFacingReply": {
+          "type": "object",
+          "description": "Synthesized legal position advisory in regional language (Tamil)."
+        },
+        "customDocumentDraft": {
+          "type": "object",
+          "description": "Tailored representation petition draft or appeal template."
+        }
+      },
+      "required": ["id", "userId", "createdAt", "rawDescription"]
+    },
+    "AdminAuditLog": {
+      "title": "Security & Admin Action Audit Log",
+      "description": "System and administrative action audit record storing user email, action, timestamp, and details.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "adminEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "targetUserEmail": { "type": "string" },
+        "details": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "adminEmail", "action"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserAccount",
+      "description": "User profiles managed by Super Admin and user."
+    },
+    "/property_cases/{caseId}": {
+      "schema": "PropertyCase",
+      "description": "Collection of property cases analyzed by authenticated legal professionals."
+    },
+    "/admin_audit_logs/{logId}": {
+      "schema": "AdminAuditLog",
+      "description": "Audit trail logs recorded for administrative and security actions."
+    }
+  }
+}
