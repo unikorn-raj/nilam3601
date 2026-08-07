@@ -20,7 +20,7 @@ app.use((req, res, next) => {
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://*.supabase.co https://*.supabase.com https://*.firebaseapp.com https://*.firebase.com; connect-src 'self' https: wss:; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; frame-src 'self' https:;"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://*.supabase.co https://*.supabase.com; connect-src 'self' https: wss:; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; frame-src 'self' https:;"
   );
   next();
 });

@@ -36,8 +36,8 @@ import {
   fetchCloudCases,
   deleteCloudCase,
   saveOrUpdateUserProfile,
-  isFirebaseMockEnabled
-} from "./lib/firebase";
+  isSupabaseMockEnabled
+} from "./lib/supabase";
 
 export default function App() {
   const { t } = useLanguage();
@@ -257,7 +257,7 @@ export default function App() {
 
       const updated = [newCase, ...cases];
       
-      // Sync with Firebase Cloud Firestore if user is signed in
+      // Sync with Supabase Cloud Database if user is signed in
       if (user) {
         try {
           await syncCaseToCloud(user.uid, newCase);
@@ -290,7 +290,7 @@ export default function App() {
     }
     const updated = cases.map(c => c.id === finalCase.id ? finalCase : c);
     
-    // Sync with Firebase Cloud Firestore if user is signed in
+    // Sync with Supabase Cloud Database if user is signed in
     if (user) {
       try {
         await syncCaseToCloud(user.uid, finalCase);
@@ -305,7 +305,7 @@ export default function App() {
   const confirmDeleteCase = async (id: string) => {
     const updated = cases.filter(c => c.id !== id);
     
-    // Sync with Firebase Cloud Firestore if user is signed in
+    // Sync with Supabase Cloud Database if user is signed in
     if (user) {
       try {
         await deleteCloudCase(user.uid, id);
@@ -1253,9 +1253,9 @@ ${selectedCase.stage6?.available?.map(d => `✓ ${d}`).join("\n") || "N/A"}
                 <div className="text-xs">
                   <p className="font-black text-white">தரவுச் சேமிப்பு நிலை (Data Sync Status)</p>
                   <p className="text-slate-300 font-medium mt-0.5">
-                    {isFirebaseMockEnabled 
+                    {isSupabaseMockEnabled 
                       ? "உள்ளூர் உலாவி சேமிப்பகத்தில் (Local Storage) தகவல்கள் பாதுகாப்பாக உள்ளன."
-                      : "ஃபையர்பேஸ் மேகக்கணி (Firebase Cloud Firestore) மூலம் ஒத்திசைக்கப்பட்டு பாதுகாக்கப்படுகிறது."}
+                      : "சூப்பாதேஸ் மேகக்கணி (Supabase Cloud Database) மூலம் ஒத்திசைக்கப்பட்டு பாதுகாக்கப்படுகிறது."}
                   </p>
                 </div>
               </div>

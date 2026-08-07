@@ -16,7 +16,7 @@ import {
   saveOrUpdateUserProfile,
   checkIsSuperAdmin,
   SUPER_ADMIN_EMAILS
-} from "../lib/firebase";
+} from "../lib/supabase";
 import { UnikornLogo } from "./UnikornLogo";
 
 interface SuperAdminModalProps {
