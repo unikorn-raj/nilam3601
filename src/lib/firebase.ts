@@ -1,17 +1,5 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { 
-  getAuth, 
-  signInWithPopup, 
-  signInWithRedirect,
-  getRedirectResult,
-  GoogleAuthProvider, 
-  signOut, 
-  onAuthStateChanged,
-  User,
-  setPersistence,
-  browserLocalPersistence
-} from "firebase/auth";
-import { 
   getFirestore, 
   collection, 
   doc, 
@@ -25,15 +13,23 @@ import {
 } from "firebase/firestore";
 import firebaseConfig from "../firebase-applet-config.json";
 import { UserProfile, PlanType, AdminAuditLog } from "../types";
+import { 
+  signInWithGoogle, 
+  logoutUser, 
+  subscribeToAuthChanges, 
+  isSupabaseMockEnabled 
+} from "./supabase";
+
+export { signInWithGoogle, logoutUser, subscribeToAuthChanges };
+export const isFirebaseMockEnabled = isSupabaseMockEnabled;
 
 // Dynamic configuration check
 const isPlaceholder = !firebaseConfig.apiKey || firebaseConfig.apiKey.includes("FakeKey");
 
 let app: any;
-let auth: ReturnType<typeof getAuth>;
 let db: ReturnType<typeof getFirestore>;
 
-export { app, auth, db };
+export { app, db };
 
 // Check if we should run in Mock mode
 const useMockFirebase = isPlaceholder || typeof window === "undefined";
@@ -41,24 +37,7 @@ const useMockFirebase = isPlaceholder || typeof window === "undefined";
 if (!useMockFirebase) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
     db = getFirestore(app, firebaseConfig.firestoreDatabaseId || "(default)");
-    
-    // Set local persistence for stable session holding
-    setPersistence(auth, browserLocalPersistence).catch((err) => {
-      console.warn("Firebase Auth persistence error:", err);
-    });
-
-    // Check for incoming redirect sign-in result on page load
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          console.log("Successfully authenticated via Google Redirect:", result.user.email);
-        }
-      })
-      .catch((err) => {
-        console.warn("Redirect authentication check notice:", err);
-      });
   } catch (err) {
     console.error("Firebase initialization failed, falling back to simulation mode:", err);
   }
@@ -107,21 +86,15 @@ export interface FirestoreErrorInfo {
 
 // Firestore Error Handler as mandated by SKILL.md
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
-  const currentAuth = auth;
-  const user = currentAuth ? currentAuth.currentUser : null;
-  
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: user?.uid || null,
-      email: user?.email || null,
-      emailVerified: user?.emailVerified || null,
-      isAnonymous: user?.isAnonymous || null,
-      tenantId: user?.tenantId || null,
-      providerInfo: user?.providerData?.map(provider => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
+      userId: null,
+      email: null,
+      emailVerified: null,
+      isAnonymous: null,
+      tenantId: null,
+      providerInfo: []
     },
     operationType,
     path
@@ -130,104 +103,6 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
-
-// ----------------- Mock Data Storage & Handlers -----------------
-// Enables immediate high-fidelity testing even without active GCP project setup
-const mockSessionKey = "unikorn360_mock_auth_user";
-let mockAuthListener: ((user: any | null) => void) | null = null;
-let currentMockUser: any | null = (() => {
-  try {
-    const saved = localStorage.getItem(mockSessionKey);
-    return saved ? JSON.parse(saved) : null;
-  } catch {
-    return null;
-  }
-})();
-
-export const isFirebaseMockEnabled = useMockFirebase;
-
-// ----------------- Exported Authentication Services -----------------
-export const signInWithGoogle = async (options?: { mockEmail?: string; useRedirect?: boolean }) => {
-  if (useMockFirebase) {
-    const cleanEmail = (options?.mockEmail || "user@gmail.com").trim();
-    // Generate a simple deterministic UID from the email address
-    const emailHash = cleanEmail.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") || "12345";
-    const displayName = cleanEmail.split("@")[0].toUpperCase();
-    
-    return new Promise<any>((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          uid: `mock_user_${emailHash}`,
-          email: cleanEmail,
-          displayName: displayName,
-          photoURL: `https://api.dicebear.com/7.x/initials/svg?seed=${emailHash}&backgroundColor=6366f1`,
-          emailVerified: true,
-          isAnonymous: false,
-        };
-        currentMockUser = mockUser;
-        localStorage.setItem(mockSessionKey, JSON.stringify(mockUser));
-        if (mockAuthListener) mockAuthListener(mockUser);
-        resolve(mockUser);
-      }, 300);
-    });
-  }
-
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({
-    prompt: 'select_account'
-  });
-
-  if (options?.useRedirect) {
-    await signInWithRedirect(auth, provider);
-    return null;
-  }
-
-  try {
-    const result = await signInWithPopup(auth, provider);
-    return result.user;
-  } catch (error: any) {
-    console.warn("Google signInWithPopup failed or was blocked by browser iframe policies. Attempting redirect fallback...", error);
-    if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/popup-closed-by-user' || error?.code === 'auth/cancelled-popup-request') {
-      try {
-        await signInWithRedirect(auth, provider);
-        return null;
-      } catch (redirectError) {
-        console.error("Google Sign-In redirect fallback failed:", redirectError);
-        throw redirectError;
-      }
-    }
-    throw error;
-  }
-};
-
-export const logoutUser = async () => {
-  if (useMockFirebase) {
-    currentMockUser = null;
-    localStorage.removeItem(mockSessionKey);
-    if (mockAuthListener) mockAuthListener(null);
-    return;
-  }
-  
-  try {
-    await signOut(auth);
-  } catch (error) {
-    console.error("Logout failed:", error);
-    throw error;
-  }
-};
-
-export const subscribeToAuthChanges = (callback: (user: any | null) => void) => {
-  if (useMockFirebase) {
-    mockAuthListener = callback;
-    // Immediate callback with current value
-    callback(currentMockUser);
-    return () => {
-      mockAuthListener = null;
-    };
-  }
-
-  return onAuthStateChanged(auth, callback);
-};
 
 // ----------------- Firestore Database Sync Operations -----------------
 const CASES_COLLECTION = "property_cases";

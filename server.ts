@@ -4,8 +4,7 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import { initializeApp, getApps } from "firebase-admin/app";
-import { getAuth, Auth } from "firebase-admin/auth";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
@@ -21,50 +20,33 @@ app.use((req, res, next) => {
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://*.firebaseapp.com https://*.firebase.com; connect-src 'self' https: wss:; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; frame-src 'self' https:;"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://*.supabase.co https://*.supabase.com https://*.firebaseapp.com https://*.firebase.com; connect-src 'self' https: wss:; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; frame-src 'self' https:;"
   );
   next();
 });
 
 app.use(express.json({ limit: "15mb" }));
 
-// Helper to resolve actual Firebase Project ID
-function getFirebaseProjectId(): string {
-  if (process.env.VITE_FIREBASE_PROJECT_ID) return process.env.VITE_FIREBASE_PROJECT_ID;
-  if (process.env.FIREBASE_PROJECT_ID) return process.env.FIREBASE_PROJECT_ID;
+// Lazy Supabase Server Client Instance
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
+const supabaseAnonKey =
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  "";
+
+let supabaseServerClient: SupabaseClient | null = null;
+if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes("placeholder")) {
   try {
-    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-    if (fs.existsSync(configPath)) {
-      const cfg = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      if (cfg.projectId) return cfg.projectId;
-    }
-  } catch (e) {
-    console.warn("Could not read firebase-applet-config.json:", e);
+    supabaseServerClient = createClient(supabaseUrl, supabaseAnonKey);
+  } catch (err) {
+    console.warn("Supabase Server Client init notice:", err);
   }
-  return "tidy-canopy-r8gvj";
 }
 
-// Lazy Firebase Admin SDK Instance
-let adminAuthInstance: Auth | null = null;
-
-function getAdminAuth(): Auth | null {
-  if (!adminAuthInstance) {
-    if (!getApps().length) {
-      try {
-        const projectId = getFirebaseProjectId();
-        initializeApp({ projectId });
-      } catch (err) {
-        console.warn("Firebase Admin SDK init notice:", err);
-      }
-    }
-    if (getApps().length) {
-      adminAuthInstance = getAuth();
-    }
-  }
-  return adminAuthInstance;
-}
-
-// Cryptographic Firebase ID Token Authentication Middleware using firebase-admin verifyIdToken()
+// Cryptographic Supabase Token Authentication Middleware
 const verifyBackendAuthToken = async (req: express.Request & { user?: any }, res: express.Response, next: express.NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -79,26 +61,31 @@ const verifyBackendAuthToken = async (req: express.Request & { user?: any }, res
   }
 
   try {
-    const auth = getAdminAuth();
-    if (auth) {
-      // Cryptographically verify ID token signature, issuer, and expiration
-      const decodedToken = await auth.verifyIdToken(token);
-      req.user = decodedToken;
-      res.setHeader("X-Auth-Status", "Authenticated-" + decodedToken.uid);
+    if (supabaseServerClient) {
+      const { data: { user }, error } = await supabaseServerClient.auth.getUser(token);
+      if (error || !user) {
+        throw new Error(error?.message || "Invalid or expired Supabase authentication token.");
+      }
+      req.user = {
+        uid: user.id,
+        id: user.id,
+        email: user.email,
+        role: user.role || user.app_metadata?.role,
+        ...user
+      };
+      res.setHeader("X-Auth-Status", "Authenticated-" + user.id);
       
-      // Check Custom Claims for super_admin role
-      if (decodedToken.role === "super_admin" || decodedToken.role === "superadmin" || decodedToken.admin === true) {
+      if (user.role === "super_admin" || user.app_metadata?.role === "superadmin" || user.user_metadata?.role === "superadmin") {
         res.setHeader("X-User-Role", "super_admin");
       } else {
         res.setHeader("X-User-Role", "user");
       }
     } else {
-      res.setHeader("X-Auth-Status", "Unauthenticated-NoAdminSDK");
+      res.setHeader("X-Auth-Status", "Unauthenticated-NoSupabaseClient");
     }
   } catch (err: any) {
-    console.warn("Firebase ID Token verification failed:", err?.message || err);
+    console.warn("Supabase Auth Token verification failed:", err?.message || err);
     res.setHeader("X-Auth-Status", "Invalid-Token");
-    // Reject invalid tokens on protected API calls
     if (req.path.startsWith("/api/admin")) {
       return res.status(401).json({ error: "Unauthorized: Invalid or expired authentication token." });
     }

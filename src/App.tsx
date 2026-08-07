@@ -15,6 +15,8 @@ import { RevenueAppealsTrackerModal } from "./components/RevenueAppealsTrackerMo
 import { SuperAdminModal } from "./components/SuperAdminModal";
 import { LandingPage } from "./components/LandingPage";
 import { UnikornLogo } from "./components/UnikornLogo";
+import { PWAInstallButton } from "./components/PWAInstallButton";
+import { usePWA } from "./lib/pwa";
 import { useLanguage, LanguageSelectorButton } from "./lib/languageContext";
 import { downloadDocumentAsPDF } from "./lib/pdfExport";
 
@@ -39,6 +41,7 @@ import {
 
 export default function App() {
   const { t } = useLanguage();
+  const { isOffline, hasUpdate, updateApp } = usePWA();
   const [cases, setCases] = useState<PropertyCase[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
 
@@ -453,6 +456,29 @@ ${selectedCase.stage6?.available?.map(d => `✓ ${d}`).join("\n") || "N/A"}
   return (
     <div className="min-h-screen flex flex-col font-sans text-slate-900 antialiased bg-[#F8FAFC] selection:bg-purple-600 selection:text-white">
       
+      {/* PWA Offline / Update Top Banner */}
+      {isOffline && (
+        <div className="bg-amber-600 text-white px-4 py-2 text-xs font-black flex items-center justify-center gap-2 shadow-md">
+          <AlertCircle className="h-4 w-4 text-amber-200" />
+          <span>ஆஃப்லைன் பயன்முறை: தற்காலிகமாக இணைய இணைப்பு துண்டிக்கப்பட்டுள்ளது. முன்பே பெறப்பட்ட தரவுகள் சேமிப்பில் உள்ளன.</span>
+        </div>
+      )}
+
+      {hasUpdate && (
+        <div className="bg-purple-700 text-white px-4 py-2 text-xs font-black flex items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-amber-300" />
+            <span>நிலம்360 AI புதிய பதிப்பு கிடைக்கிறது!</span>
+          </div>
+          <button
+            onClick={updateApp}
+            className="px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-xs font-extrabold uppercase tracking-wider transition cursor-pointer"
+          >
+            இப்போதே புதுப்பிக்க (Update App)
+          </button>
+        </div>
+      )}
+
       {/* 1. Professional Office Header with Deep Purple & Clean Slate aesthetic */}
       <header className="flex items-center justify-between px-4 sm:px-6 py-3.5 bg-white border-b border-slate-200 sticky top-0 z-40 no-print shadow-xs">
         <div 
@@ -467,6 +493,9 @@ ${selectedCase.stage6?.available?.map(d => `✓ ${d}`).join("\n") || "N/A"}
         </div>
         
         <div className="flex items-center space-x-2 sm:space-x-4">
+          {/* PWA Install Button (Displays when installable, hides when not) */}
+          <PWAInstallButton variant="header" />
+
           {/* Global Language Switcher */}
           <LanguageSelectorButton variant="light" />
 
@@ -1469,6 +1498,10 @@ ${selectedCase.stage6?.available?.map(d => `✓ ${d}`).join("\n") || "N/A"}
         </div>
       </footer>
 
+      {/* Floating PWA Install Action Button (Visible when app is installable, hidden when installed/unavailable) */}
+      <PWAInstallButton variant="floating" />
+
     </div>
   );
 }
+

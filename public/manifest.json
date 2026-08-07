@@ -1,0 +1,56 @@
+{
+  "name": "Nilam360 AI • தமிழ்நாடு நில வருவாய் & சொத்துத் தணிக்கை",
+  "short_name": "Nilam360",
+  "description": "AI-powered legal, property, and civic resolution platform supporting Property360, Legal360, and AIEOS workspaces.",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "legal", "utilities"],
+  "shortcuts": [
+    {
+      "name": "புதிய சொத்து வழக்கு",
+      "short_name": "புதிய வழக்கு",
+      "description": "தமிழ்நாடு நில வழக்கு தணிக்கையை தொடங்கு",
+      "url": "/?action=new_case",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "சட்ட அறிவுக் களஞ்சியம்",
+      "short_name": "RAG Library",
+      "description": "தமிழ்நாடு நில வருவாய் சட்டங்களை தேடுக",
+      "url": "/?action=rag",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

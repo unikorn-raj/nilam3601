@@ -5,7 +5,7 @@ import {
   ChevronRight, CornerDownRight, HelpCircle, ShieldCheck, QrCode, Download
 } from "lucide-react";
 import { generateDocumentSeal, DocumentSealInfo } from "../lib/security";
-import { auth } from "../lib/firebase";
+import { supabase } from "../lib/supabase";
 import { downloadDocumentAsPDF } from "../lib/pdfExport";
 import { useLanguage } from "../lib/languageContext";
 
@@ -84,12 +84,11 @@ export function DocumentDraftPanel({ caseData, onUpdateDraft }: DocumentDraftPan
 
     try {
       let authToken = "";
-      if (auth.currentUser) {
-        try {
-          authToken = await auth.currentUser.getIdToken();
-        } catch (err) {
-          console.warn("Failed to get user ID Token:", err);
-        }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        authToken = session?.access_token || "";
+      } catch (err) {
+        console.warn("Failed to get Supabase Auth Token:", err);
       }
 
       const response = await fetch("/api/draft", {

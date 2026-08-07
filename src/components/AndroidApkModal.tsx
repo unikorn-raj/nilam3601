@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { 
   Smartphone, Download, SmartphoneNfc, Globe, ShieldCheck, 
   ExternalLink, CheckCircle2, Copy, Check, ArrowRight, X, AlertCircle, Laptop
 } from "lucide-react";
 import { UnikornLogo } from "./UnikornLogo";
+import { usePWA } from "../lib/pwa";
 
 interface AndroidApkModalProps {
   isOpen: boolean;
@@ -12,35 +13,16 @@ interface AndroidApkModalProps {
 
 export function AndroidApkModal({ isOpen, onClose }: AndroidApkModalProps) {
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const { isInstallable, promptInstall } = usePWA();
   const [activeTab, setActiveTab] = useState<"pwa" | "apk" | "export">("pwa");
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    };
-  }, []);
 
   if (!isOpen) return null;
 
-  const currentAppUrl = typeof window !== "undefined" ? window.location.href : "https://ais-dev-73jobqr7m5wll6uggsbrwr-165866840927.asia-southeast1.run.app";
+  const currentAppUrl = typeof window !== "undefined" ? window.location.origin : "https://ais-dev-73jobqr7m5wll6uggsbrwr-165866840927.asia-southeast1.run.app";
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
-        setDeferredPrompt(null);
-        setIsInstallable(false);
-      }
+    if (isInstallable) {
+      await promptInstall();
     } else {
       alert("உங்கள் ஆண்ட்ராய்டு போனின் Chrome உலாவியில் 'Add to Home screen' அல்லது 'Install app' தேர்வு செய்து நேரடியாக நிலம்360 AI செயலியை நிறுவலாம்.");
     }

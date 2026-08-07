@@ -10,6 +10,7 @@ import { PLAN_CONFIGS, ALL_PLANS } from "../data/pricingMaster";
 import { PlanType } from "../types";
 import { UnikornLogo } from "./UnikornLogo";
 import { useLanguage, LanguageSelectorButton } from "../lib/languageContext";
+import { PWAInstallButton } from "./PWAInstallButton";
 
 interface LandingPageProps {
   onLogin: (options?: { useRedirect?: boolean }) => void;
@@ -61,8 +62,9 @@ export function LandingPage({ onLogin, isLoading }: LandingPageProps) {
             </a>
           </div>
 
-          {/* Right Language Selector & Login Button */}
+          {/* Right Language Selector, PWA Install & Login Button */}
           <div className="flex items-center gap-3">
+            <PWAInstallButton variant="header" />
             <LanguageSelectorButton variant="dark" />
 
             <button
