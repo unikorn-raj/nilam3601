@@ -172,22 +172,7 @@ export default function App() {
     setLoginError(null);
     try {
       setIsAuthLoading(true);
-      const resUser = await signInWithGoogle(options);
-      if (resUser && resUser.email) {
-        try {
-          const profile = await saveOrUpdateUserProfile({
-            uid: resUser.uid,
-            email: resUser.email,
-            displayName: resUser.displayName || undefined,
-            photoURL: resUser.photoURL || undefined
-          }, userPlan);
-          if (profile && profile.plan) {
-            setUserPlan(profile.plan);
-          }
-        } catch (profileErr) {
-          console.error("User profile sync error on google login:", profileErr);
-        }
-      }
+      await signInWithGoogle(options);
       setIsLoginModalOpen(false);
     } catch (err: any) {
       console.error("Login failed:", err);
@@ -591,17 +576,17 @@ ${selectedCase.stage6?.available?.map(d => `✓ ${d}`).join("\n") || "N/A"}
               >
                 <div className="flex flex-col items-end text-right hidden sm:flex">
                   <span className="text-xs font-black text-slate-900 leading-tight truncate max-w-[150px] group-hover:text-purple-700 transition-colors">
-                    {user.displayName || "அறியப்படாத பயனர்"}
+                    {user.displayName || user.email?.split("@")[0]}
                   </span>
                   <span className="text-[9px] font-bold text-slate-500 tracking-wide leading-none">{user.email}</span>
                 </div>
 
                 <div className="w-8 h-8 rounded-full border border-purple-400 overflow-hidden shrink-0 shadow-xs group-hover:ring-2 group-hover:ring-purple-500 transition-all">
                   {user.photoURL ? (
-                    <img src={user.photoURL} alt={user.displayName || "User"} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                    <img src={user.photoURL} alt={user.displayName || user.email} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-purple-700 text-white font-black flex items-center justify-center text-xs">
-                      {user.displayName?.charAt(0) || "U"}
+                      {(user.displayName || user.email || "U").charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
@@ -1188,10 +1173,10 @@ ${selectedCase.stage6?.available?.map(d => `✓ ${d}`).join("\n") || "N/A"}
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl border-2 border-white/20 overflow-hidden bg-indigo-600 shrink-0 shadow-md">
                   {user.photoURL ? (
-                    <img src={user.photoURL} alt={user.displayName || "User"} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                    <img src={user.photoURL} alt={user.displayName || user.email} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full text-white font-black flex items-center justify-center text-xl">
-                      {user.displayName?.charAt(0) || "U"}
+                      {(user.displayName || user.email || "U").charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
@@ -1201,7 +1186,7 @@ ${selectedCase.stage6?.available?.map(d => `✓ ${d}`).join("\n") || "N/A"}
                       இணைக்கப்பட்ட பயனர்
                     </span>
                   </div>
-                  <h3 className="text-base font-black text-white truncate mt-1">{user.displayName || "அறியப்படாத பயனர்"}</h3>
+                  <h3 className="text-base font-black text-white truncate mt-1">{user.displayName || user.email?.split("@")[0]}</h3>
                   <p className="text-xs text-indigo-200 font-medium truncate">{user.email}</p>
                 </div>
               </div>
